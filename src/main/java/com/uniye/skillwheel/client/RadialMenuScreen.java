@@ -2,6 +2,7 @@ package com.uniye.skillwheel.client;
 
 import com.uniye.skillwheel.Network;
 import com.uniye.skillwheel.util.ItemSources;
+import com.uniye.skillwheel.util.SelectableItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RadialMenuScreen extends Screen {
-    private final List<ItemStack> all = new ArrayList<>();
+    private final List<SelectableItem> all = new ArrayList<>();
     private int page = 0;
     private long openTime;
     private int hovered = -1;
@@ -39,7 +40,7 @@ public class RadialMenuScreen extends Screen {
     protected void init() {
         Player p = Minecraft.getInstance().player;
         all.clear();
-        if (p != null) all.addAll(ItemSources.getDisplayStacks(p));
+        if (p != null) all.addAll(ItemSources.getDisplayEntries(p));
         openTime = System.nanoTime();
     }
 
@@ -48,7 +49,7 @@ public class RadialMenuScreen extends Screen {
         return false;
     }
 
-    private List<ItemStack> pageItems() {
+    private List<SelectableItem> pageItems() {
         int start = page * 6;
         int end = Math.min(start + 6, all.size());
         return all.subList(start, end);
@@ -61,7 +62,7 @@ public class RadialMenuScreen extends Screen {
         int cy = this.height / 2;
         float t = Math.min(1f, (System.nanoTime() - openTime) / 5_000_000f);
         float radius = 60f + 40f * t;
-        List<ItemStack> items = pageItems();
+        List<SelectableItem> items = pageItems();
         hovered = -1;
         float inner = radius - 24f;
         float outer = radius + 24f;
@@ -93,7 +94,7 @@ public class RadialMenuScreen extends Screen {
             int ix = cx + (int) (Math.cos(mid) * ir);
             int iy = cy + (int) (Math.sin(mid) * ir);
             if (i < items.size()) {
-                ItemStack s = items.get(i);
+                ItemStack s = items.get(i).stack;
                 float scale = 1.0f;
                 if (i == hovered) {
                     float dt = Math.min(1f, (System.nanoTime() - hoverStart) / 150_000_000f);
@@ -111,7 +112,7 @@ public class RadialMenuScreen extends Screen {
                 g.pose().popPose();
                 String name = s.getHoverName().getString();
                 float pct = cooldownPercent(s, pt);
-                String pctText = (int) (pct * 100) + "%";
+                String pctText = Mth.clamp((int) ((1f - pct) * 100f), 0, 100) + "%";
                 g.drawString(this.font, pctText, ix - this.font.width(pctText) / 2, iy + 12, 0xFFFFFF, false);
                 g.drawString(this.font, name, ix - this.font.width(name) / 2, iy - 22, 0xFFFFFF, true);
             }
@@ -136,7 +137,7 @@ public class RadialMenuScreen extends Screen {
             return false;
         }
         if (button == 0) {
-            List<ItemStack> items = pageItems();
+            List<SelectableItem> items = pageItems();
             if (hovered >= 0 && hovered < items.size()) {
                 Player p = Minecraft.getInstance().player;
                 if (p != null) {
