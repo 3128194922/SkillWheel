@@ -17,6 +17,7 @@ import java.util.List;
 
 public class ItemSources {
     public static final TagKey<Item> SKILL_ITEMS = TagKey.create(Registries.ITEM, new ResourceLocation("skillwheel", "skills"));
+    public static final TagKey<Item> SKILL_ITEMS_UI = TagKey.create(Registries.ITEM, new ResourceLocation("skillwheel", "skills_ui"));
 
     public static List<SelectableItem> getDisplayEntries(Player player) {
         List<SelectableItem> result = new ArrayList<>();
@@ -44,5 +45,30 @@ public class ItemSources {
         boolean groupFlag = stack.is(SKILL_ITEMS);
         if (!groupFlag) return;
         list.add(new SelectableItem(stack.copy(), source, idx, slotName));
+    }
+
+    public static List<ItemStack> getUiEntries(Player player) {
+        List<ItemStack> result = new ArrayList<>();
+        addUiIfValid(result, player.getMainHandItem());
+        addUiIfValid(result, player.getOffhandItem());
+        player.getInventory().armor.forEach(s -> addUiIfValid(result, s));
+        if (ModList.get().isLoaded("curios")) {
+            player.getCapability(CuriosCapability.INVENTORY).resolve().ifPresent(curios -> {
+                curios.getCurios().forEach((slot, handler) -> {
+                    IDynamicStackHandler stacks = handler.getStacks();
+                    for (int i = 0; i < stacks.getSlots(); i++) {
+                        addUiIfValid(result, stacks.getStackInSlot(i));
+                    }
+                });
+            });
+        }
+        return result;
+    }
+
+    private static void addUiIfValid(List<ItemStack> list, ItemStack stack) {
+        if (stack == null) return;
+        if (stack.isEmpty()) return;
+        if (!(stack.is(SKILL_ITEMS) && stack.is(SKILL_ITEMS_UI))) return;
+        list.add(stack.copy());
     }
 }
