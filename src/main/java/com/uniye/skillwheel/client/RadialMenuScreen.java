@@ -71,6 +71,11 @@ public class RadialMenuScreen extends Screen {
         return all.subList(start, end);
     }
 
+    private boolean isOnCooldown(ItemStack stack) {
+        Player player = Minecraft.getInstance().player;
+        return player != null && player.getCooldowns().isOnCooldown(stack.getItem());
+    }
+
     private boolean tryOpenSubmenu(SelectableItem item) {
         if (item.stack.is(SUBMENU_TAG)) {
             CompoundTag tag = item.stack.getTag();
@@ -119,7 +124,7 @@ public class RadialMenuScreen extends Screen {
             int hi = 0x88FFFFFF;
             drawRingSegment(g, cx, cy, inner, outer, a0, a1, base);
             if (!inSubmenu && i < items.size()) {
-                boolean h = inSector(mx - cx, my - cy, a0, a1, inner, outer);
+                boolean h = inSector(mx - cx, my - cy, a0, a1, inner, outer) && !isOnCooldown(items.get(i).stack);
                 if (h) {
                     hovered = i;
                     drawRingSegment(g, cx, cy, inner, outer, a0, a1, hi);
@@ -173,7 +178,9 @@ public class RadialMenuScreen extends Screen {
                 int base = 0x55000000;
                 int hi = 0x88FFFFFF;
                 drawRingSegment(g, cx, cy, subInner, subOuter, a0, a1, base);
-                boolean h = inSector(mx - cx, my - cy, a0, a1, subInner, subOuter);
+                boolean h = inSector(mx - cx, my - cy, a0, a1, subInner, subOuter)
+                        && submenuParent != null
+                        && !isOnCooldown(submenuParent.stack);
                 int index = i + 1;
                 if (h) {
                     submenuHovered = index;
@@ -185,7 +192,8 @@ public class RadialMenuScreen extends Screen {
                     float ir = (subInner + subOuter) * 0.6f;
                     int ix = cx + (int) (Math.cos(mid) * ir);
                     int iy = cy + (int) (Math.sin(mid) * ir);
-                    g.drawString(this.font, text, ix - this.font.width(text) / 2, iy - 4, 0xFFFFFF, true);
+                    int color = submenuParent != null && isOnCooldown(submenuParent.stack) ? 0xAAAAAA : 0xFFFFFF;
+                    g.drawString(this.font, text, ix - this.font.width(text) / 2, iy - 4, color, true);
                 }
             }
         }
@@ -211,7 +219,7 @@ public class RadialMenuScreen extends Screen {
             if (button == 0) {
                 if (submenuHovered != -1 && currentSubmenu.containsKey(submenuHovered)) {
                     Player p = Minecraft.getInstance().player;
-                    if (p != null) {
+                    if (p != null && submenuParent != null && !isOnCooldown(submenuParent.stack)) {
                         boolean shiftDown = ClientInputState.isSneakKeyDown();
                         LastSelectionState.record(submenuParent, true, submenuHovered, shiftDown);
                         Network.sendSelect(p, submenuParent, true, submenuHovered, shiftDown);
@@ -235,6 +243,9 @@ public class RadialMenuScreen extends Screen {
             List<SelectableItem> items = pageItems();
             if (hovered >= 0 && hovered < items.size()) {
                 SelectableItem item = items.get(hovered);
+                if (isOnCooldown(item.stack)) {
+                    return true;
+                }
                 if (tryOpenSubmenu(item)) {
                     return true;
                 }

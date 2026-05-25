@@ -42,6 +42,9 @@ public final class LastSelectionState {
             if (!matches(current, lastEntry)) {
                 continue;
             }
+            if (player.getCooldowns().isOnCooldown(current.stack.getItem())) {
+                return false;
+            }
             if (lastWasSubmenu && !hasSubmenuOption(current.stack, lastSubmenuIndex)) {
                 return false;
             }
