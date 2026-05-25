@@ -7,7 +7,7 @@ import java.lang.reflect.Method;
 import com.uniye.skillwheel.util.SelectableItem;
 
 public class Network {
-    public static void sendSelect(Player player, SelectableItem entry) {
+    public static void sendSelect(Player player, SelectableItem entry, boolean isSubmenu, int submenuIndex) {
         String ch = "skillwheel";
         try {
             Player p = Minecraft.getInstance().player;
@@ -18,11 +18,19 @@ public class Network {
                 entry.stack.save(itemTag);
                 data.put("item", itemTag);
                 data.putString("sourceType", entry.sourceType);
+                data.putBoolean("isSubmenu", isSubmenu);
+                if (submenuIndex != -1) {
+                    data.putInt("submenuIndex", submenuIndex);
+                }
                 data.putInt("slotIndex", entry.slotIndex);
                 if (entry.slotName != null) data.putString("slotName", entry.slotName);
                 m.invoke(p, ch, data);
             }
         } catch (Throwable ignored) {
         }
+    }
+
+    public static void sendSelect(Player player, SelectableItem entry) {
+        sendSelect(player, entry, false, -1);
     }
 }

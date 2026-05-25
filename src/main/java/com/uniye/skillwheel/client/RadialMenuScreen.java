@@ -17,9 +17,17 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import org.joml.Matrix4f;
+import net.minecraft.tags.TagKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import org.slf4j.Logger;
+import com.mojang.logging.LogUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 public class RadialMenuScreen extends Screen {
     private final List<SelectableItem> all = new ArrayList<>();
@@ -31,6 +39,14 @@ public class RadialMenuScreen extends Screen {
     private boolean sent = false;
     private int lastHovered = -1;
     private long hoverStart = 0L;
+
+    // Submenu fields
+    private boolean inSubmenu = false;
+    private Map<Integer, String> currentSubmenu = new HashMap<>();
+    private int submenuHovered = -1;
+    private SelectableItem submenuParent = null;
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static final TagKey<net.minecraft.world.item.Item> SUBMENU_TAG = TagKey.create(Registries.ITEM, new ResourceLocation("skillwheel", "submenu"));
 
     public RadialMenuScreen() {
         super(Component.translatable("screen.skillwheel.radial"));
@@ -55,6 +71,34 @@ public class RadialMenuScreen extends Screen {
         return all.subList(start, end);
     }
 
+    private boolean tryOpenSubmenu(SelectableItem item) {
+        if (item.stack.is(SUBMENU_TAG)) {
+            CompoundTag tag = item.stack.getTag();
+            if (tag != null && tag.contains("submenu")) {
+                CompoundTag sub = tag.getCompound("submenu");
+                currentSubmenu.clear();
+                boolean valid = false;
+                for (String key : sub.getAllKeys()) {
+                    try {
+                        int index = Integer.parseInt(key);
+                        if (index >= 1 && index <= 4) {
+                            currentSubmenu.put(index, sub.getString(key));
+                            valid = true;
+                        }
+                    } catch (NumberFormatException ignored) {}
+                }
+                
+                if (valid) {
+                    inSubmenu = true;
+                    submenuParent = item;
+                    return true;
+                }
+            }
+            LOGGER.error("Item {} has skillwheel:submenu tag but missing or invalid 'submenu' NBT.", item.stack);
+        }
+        return false;
+    }
+
     @Override
     public void render(GuiGraphics g, int mx, int my, float pt) {
         super.render(g, mx, my, pt);
@@ -74,7 +118,7 @@ public class RadialMenuScreen extends Screen {
             int base = 0x55000000;
             int hi = 0x88FFFFFF;
             drawRingSegment(g, cx, cy, inner, outer, a0, a1, base);
-            if (i < items.size()) {
+            if (!inSubmenu && i < items.size()) {
                 boolean h = inSector(mx - cx, my - cy, a0, a1, inner, outer);
                 if (h) {
                     hovered = i;
@@ -96,7 +140,7 @@ public class RadialMenuScreen extends Screen {
             if (i < items.size()) {
                 ItemStack s = items.get(i).stack;
                 float scale = 1.0f;
-                if (i == hovered) {
+                if (!inSubmenu && i == hovered) {
                     float dt = Math.min(1f, (System.nanoTime() - hoverStart) / 150_000_000f);
                     scale = 1.0f + 0.15f * dt;
                 }
@@ -117,6 +161,35 @@ public class RadialMenuScreen extends Screen {
                 g.drawString(this.font, name, ix - this.font.width(name) / 2, iy - 22, 0xFFFFFF, true);
             }
         }
+
+        if (inSubmenu) {
+            submenuHovered = -1;
+            float subOuter = inner - 10f;
+            float subInner = 0f;
+            float subPer = (float) (Math.PI * 2 / 4);
+            for (int i = 0; i < 4; i++) {
+                float a0 = subPer * i - (float) Math.PI / 2 + gap;
+                float a1 = subPer * (i + 1) - (float) Math.PI / 2 - gap;
+                int base = 0x55000000;
+                int hi = 0x88FFFFFF;
+                drawRingSegment(g, cx, cy, subInner, subOuter, a0, a1, base);
+                boolean h = inSector(mx - cx, my - cy, a0, a1, subInner, subOuter);
+                int index = i + 1;
+                if (h) {
+                    submenuHovered = index;
+                    drawRingSegment(g, cx, cy, subInner, subOuter, a0, a1, hi);
+                }
+                if (currentSubmenu.containsKey(index)) {
+                    String text = currentSubmenu.get(index);
+                    float mid = (a0 + a1) * 0.5f;
+                    float ir = (subInner + subOuter) * 0.6f;
+                    int ix = cx + (int) (Math.cos(mid) * ir);
+                    int iy = cy + (int) (Math.sin(mid) * ir);
+                    g.drawString(this.font, text, ix - this.font.width(text) / 2, iy - 4, 0xFFFFFF, true);
+                }
+            }
+        }
+
         String pageText = (all.isEmpty() ? "0/0" : ((page + 1) + "/" + ((all.size() + 5) / 6)));
         g.drawString(this.font, pageText, cx - this.font.width(pageText) / 2, cy + (int) (radius + 20), 0xFFFFFF, false);
     }
@@ -129,6 +202,26 @@ public class RadialMenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
+        if (inSubmenu) {
+            if (button == 1) {
+                inSubmenu = false;
+                submenuParent = null;
+                return true;
+            }
+            if (button == 0) {
+                if (submenuHovered != -1 && currentSubmenu.containsKey(submenuHovered)) {
+                    Player p = Minecraft.getInstance().player;
+                    if (p != null) {
+                        Network.sendSelect(p, submenuParent, true, submenuHovered);
+                        sent = true;
+                        onClose();
+                    }
+                }
+                return true;
+            }
+            return true;
+        }
+
         if (button == 1) {
             if (all.size() > 6) {
                 page = (page + 1) % ((all.size() + 5) / 6);
@@ -139,9 +232,13 @@ public class RadialMenuScreen extends Screen {
         if (button == 0) {
             List<SelectableItem> items = pageItems();
             if (hovered >= 0 && hovered < items.size()) {
+                SelectableItem item = items.get(hovered);
+                if (tryOpenSubmenu(item)) {
+                    return true;
+                }
                 Player p = Minecraft.getInstance().player;
                 if (p != null) {
-                    Network.sendSelect(p, items.get(hovered));
+                    Network.sendSelect(p, item);
                     sent = true;
                     selecting = hovered;
                     selectingTime = System.nanoTime();
@@ -181,20 +278,25 @@ public class RadialMenuScreen extends Screen {
     }
 
     private boolean inSector(double dx, double dy, float a0, float a1, float inner, float outer) {
-        double ang = Math.atan2(dy, dx);
-        if (ang < -Math.PI) ang += Math.PI * 2;
-        if (ang > Math.PI) ang -= Math.PI * 2;
-        float s0 = a0;
-        float s1 = a1;
+        double r = Math.sqrt(dx * dx + dy * dy);
+        if (r < inner || r > outer) return false;
+
+        double ang = Math.atan2(dy, dx); // [-PI, PI]
+        
+        float s0 = normalizeAngle(a0);
+        float s1 = normalizeAngle(a1);
+
         if (s1 < s0) {
-            boolean inAng = ang >= s0 || ang <= s1;
-            double r = Math.sqrt(dx * dx + dy * dy);
-            return inAng && r >= inner && r <= outer;
+            return ang >= s0 || ang <= s1;
         } else {
-            boolean inAng = ang >= s0 && ang <= s1;
-            double r = Math.sqrt(dx * dx + dy * dy);
-            return inAng && r >= inner && r <= outer;
+            return ang >= s0 && ang <= s1;
         }
+    }
+
+    private float normalizeAngle(float a) {
+        while (a <= -Math.PI) a += (float) Math.PI * 2;
+        while (a > Math.PI) a -= (float) Math.PI * 2;
+        return a;
     }
 
     @Override
