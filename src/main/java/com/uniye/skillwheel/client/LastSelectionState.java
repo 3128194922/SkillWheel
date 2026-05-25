@@ -11,7 +11,6 @@ public final class LastSelectionState {
     private static SelectableItem lastEntry;
     private static boolean lastWasSubmenu;
     private static int lastSubmenuIndex = -1;
-    private static boolean lastShiftDown;
     private static CompoundTag lastPayload;
 
     private LastSelectionState() {
@@ -25,7 +24,6 @@ public final class LastSelectionState {
         lastEntry = new SelectableItem(entry.stack.copy(), entry.sourceType, entry.slotIndex, entry.slotName);
         lastWasSubmenu = isSubmenu;
         lastSubmenuIndex = submenuIndex;
-        lastShiftDown = shiftDown;
         lastPayload = Network.createSelectPayload(lastEntry, isSubmenu, submenuIndex, shiftDown);
     }
 
@@ -33,12 +31,11 @@ public final class LastSelectionState {
         lastEntry = null;
         lastWasSubmenu = false;
         lastSubmenuIndex = -1;
-        lastShiftDown = false;
         lastPayload = null;
     }
 
     public static boolean replay(Player player) {
-        if (player == null || lastEntry == null) {
+        if (player == null || lastEntry == null || lastPayload == null) {
             return false;
         }
         for (SelectableItem current : ItemSources.getDisplayEntries(player)) {
@@ -48,27 +45,14 @@ public final class LastSelectionState {
             if (lastWasSubmenu && !hasSubmenuOption(current.stack, lastSubmenuIndex)) {
                 return false;
             }
-            if (lastWasSubmenu && lastPayload != null) {
-                Network.send(player, lastPayload.copy());
-            } else {
-                Network.sendSelect(player, current, lastWasSubmenu, lastSubmenuIndex, lastShiftDown);
-            }
+            Network.send(player, lastPayload.copy());
             return true;
         }
         return false;
     }
 
     private static boolean matches(SelectableItem current, SelectableItem saved) {
-        if (!saved.sourceType.equals(current.sourceType)) {
-            return false;
-        }
-        if (saved.slotIndex != current.slotIndex) {
-            return false;
-        }
-        if (saved.slotName == null ? current.slotName != null : !saved.slotName.equals(current.slotName)) {
-            return false;
-        }
-        return ItemStack.isSameItemSameTags(saved.stack, current.stack);
+        return ItemStack.isSameItem(saved.stack, current.stack);
     }
 
     private static boolean hasSubmenuOption(ItemStack stack, int submenuIndex) {
