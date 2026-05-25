@@ -76,6 +76,21 @@ HUD 会额外显示该物品当前的冷却遮罩。
 - 默认按键：`R`
 - 再按一次同样按键可关闭轮盘
 
+### 重复上一次技能
+
+- 默认不绑定任何键位
+- 需要玩家自行到游戏按键设置中绑定 `重复上一次技能`
+- 按下后会尝试再次发送最近一次有效的轮盘选择或子菜单选择
+- 会复用上一次选择时记录下来的 `shiftDown` 状态
+- 如果原物品已不存在、来源槽位变化、物品/NBT 不一致，或子菜单选项已失效，则不会发送
+
+### 轮盘 Shift 键
+
+- 新增独立按键 `轮盘 Shift 键`
+- 默认绑定为 `Left Shift`
+- 该按键仅用于 SkillWheel 在轮盘和二级菜单开启时判断 `shiftDown`
+- 玩家如果修改绑定，SkillWheel 会按新绑定动态检测
+
 ### 轮盘操作
 
 - 左键：选择当前高亮物品
@@ -205,6 +220,7 @@ give @p yourmod:stance_book{submenu:{1:"火",2:"水",3:"风",4:"雷"}}
 - `sourceType`: 来源类型
 - `slotIndex`: 来源槽位索引
 - `slotName`: Curios 槽位名，仅 Curios 来源时可能存在
+- `shiftDown`: 触发发送时“轮盘 Shift 键”是否按下
 - `isSubmenu`: 是否来自子菜单
 - `submenuIndex`: 子菜单项索引，仅子菜单选择时存在
 
@@ -219,6 +235,9 @@ give @p yourmod:stance_book{submenu:{1:"火",2:"水",3:"风",4:"雷"}}
 
 - 普通轮盘点击时：`isSubmenu = false`
 - 子菜单点击时：`isSubmenu = true`，并附带 `submenuIndex`
+- 普通轮盘点击时会附带点击当下检测到的 `shiftDown`
+- 子菜单点击时会附带点击当下检测到的 `shiftDown`
+- “重复上一次技能”快捷键重发时，会复用上一次记录下来的 `shiftDown`
 
 ## KubeJS 使用思路
 
@@ -274,12 +293,13 @@ give @p yourmod:stance_book{submenu:{1:"火",2:"水",3:"风",4:"雷"}}
 
 项目当前主要由以下部分组成：
 
-- `KeyBindings`：注册默认按键 `R`
-- `ClientInit`：监听按键并打开/关闭轮盘界面
+- `KeyBindings`：注册打开轮盘按键、默认未绑定的“重复上一次技能”按键，以及默认绑定为 `Left Shift` 的“轮盘 Shift 键”
+- `ClientInit`：监听按键并打开/关闭轮盘界面，或触发上一次技能重发
 - `RadialMenuScreen`：负责渲染轮盘、多页切换、子菜单和点击选择
+- `LastSelectionState`：记录最近一次有效选择，并在重发前做安全校验
 - `HudRenderer`：渲染左下角技能图标与冷却遮罩
 - `ItemSources`：从玩家主手、副手、护甲和 Curios 中收集可选物品
-- `Network`：把选择结果通过 `kjs$sendData("skillwheel", data)` 发给 KubeJS
+- `Network`：把选择结果通过 `kjs$sendData("skillwheel", data)` 发给 KubeJS，并附带 `shiftDown`
 
 ## 开发与运行
 
@@ -314,6 +334,7 @@ build/libs/
 - 轮盘每页最多显示 `6` 个物品，超过后需右键翻页
 - 子菜单最多支持 `4` 个选项
 - Curios 来源需要安装 Curios 才会被扫描
+- “重复上一次技能”只会在重新校验通过时发送，不会无条件盲发
 - 本模组本身不执行技能效果，核心逻辑要由 KubeJS 或其他脚本继续处理
 
 ## License

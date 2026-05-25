@@ -46,7 +46,7 @@ public class RadialMenuScreen extends Screen {
     private int submenuHovered = -1;
     private SelectableItem submenuParent = null;
     private static final Logger LOGGER = LogUtils.getLogger();
-    private static final TagKey<net.minecraft.world.item.Item> SUBMENU_TAG = TagKey.create(Registries.ITEM, new ResourceLocation("skillwheel", "submenu"));
+    private static final TagKey<net.minecraft.world.item.Item> SUBMENU_TAG = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("skillwheel", "submenu"));
 
     public RadialMenuScreen() {
         super(Component.translatable("screen.skillwheel.radial"));
@@ -212,7 +212,9 @@ public class RadialMenuScreen extends Screen {
                 if (submenuHovered != -1 && currentSubmenu.containsKey(submenuHovered)) {
                     Player p = Minecraft.getInstance().player;
                     if (p != null) {
-                        Network.sendSelect(p, submenuParent, true, submenuHovered);
+                        boolean shiftDown = ClientInputState.isSneakKeyDown();
+                        LastSelectionState.record(submenuParent, true, submenuHovered, shiftDown);
+                        Network.sendSelect(p, submenuParent, true, submenuHovered, shiftDown);
                         sent = true;
                         onClose();
                     }
@@ -238,7 +240,9 @@ public class RadialMenuScreen extends Screen {
                 }
                 Player p = Minecraft.getInstance().player;
                 if (p != null) {
-                    Network.sendSelect(p, item);
+                    boolean shiftDown = ClientInputState.isSneakKeyDown();
+                    LastSelectionState.record(item, false, -1, shiftDown);
+                    Network.sendSelect(p, item, false, -1, shiftDown);
                     sent = true;
                     selecting = hovered;
                     selectingTime = System.nanoTime();

@@ -13,6 +13,9 @@ public class ClientInit {
     @SubscribeEvent
     public static void clientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
+        if (KeyBindings.consumeRepeatLastClick()) {
+            LastSelectionState.replay(Minecraft.getInstance().player);
+        }
         if (KeyBindings.consumeOpenClick()) {
             Minecraft mc = Minecraft.getInstance();
             if (mc.screen instanceof RadialMenuScreen) mc.setScreen(null);

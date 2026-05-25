@@ -16,8 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ItemSources {
-    public static final TagKey<Item> SKILL_ITEMS = TagKey.create(Registries.ITEM, new ResourceLocation("skillwheel", "skills"));
-    public static final TagKey<Item> SKILL_ITEMS_UI = TagKey.create(Registries.ITEM, new ResourceLocation("skillwheel", "skills_ui"));
+    public static final TagKey<Item> SKILL_ITEMS = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("skillwheel", "skills"));
+    public static final TagKey<Item> SKILL_ITEMS_UI = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("skillwheel", "skills_ui"));
 
     public static List<SelectableItem> getDisplayEntries(Player player) {
         List<SelectableItem> result = new ArrayList<>();

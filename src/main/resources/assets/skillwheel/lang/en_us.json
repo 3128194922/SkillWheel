@@ -1,5 +1,7 @@
 {
   "key.skillwheel.open": "Open Skill Wheel",
+  "key.skillwheel.repeat_last": "Repeat Last Skill",
+  "key.skillwheel.shift_state": "Wheel Shift Key",
   "screen.skillwheel.radial": "Skill Wheel",
   "key.categories.skillwheel": "Skill Wheel"
 }

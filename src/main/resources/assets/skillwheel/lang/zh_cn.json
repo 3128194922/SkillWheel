@@ -1,5 +1,7 @@
 {
   "key.skillwheel.open": "打开技能轮盘",
+  "key.skillwheel.repeat_last": "重复上一次技能",
+  "key.skillwheel.shift_state": "轮盘 Shift 键",
   "screen.skillwheel.radial": "技能轮盘",
   "key.categories.skillwheel": "技能轮盘"
 }
