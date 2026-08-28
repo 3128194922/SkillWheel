@@ -68,7 +68,7 @@ public class ItemSources {
     private static void addUiIfValid(List<ItemStack> list, ItemStack stack) {
         if (stack == null) return;
         if (stack.isEmpty()) return;
-        if (!(stack.is(SKILL_ITEMS) && stack.is(SKILL_ITEMS_UI))) return;
+        if (!stack.is(SKILL_ITEMS_UI)) return;
         list.add(stack.copy());
     }
 }

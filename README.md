@@ -55,7 +55,7 @@ HUD 显示条件：
 - 配置项 `hudEnabled = true`
 - 当前没有打开其他界面
 - 玩家处于第一人称视角
-- 物品同时命中 `skillwheel:skills` 和 `skillwheel:skills_ui`
+- 物品带有 `skillwheel:skills_ui` 标签（不要求同时带有 `skillwheel:skills`）
 
 HUD 会额外显示该物品当前的冷却遮罩。
 
@@ -145,8 +145,9 @@ data/skillwheel/tags/items/skills.json
 
 注意：
 
-- 只有同时命中 `skillwheel:skills` 和 `skillwheel:skills_ui` 的物品，才会出现在 HUD
+- 只要物品带有 `skillwheel:skills_ui` 标签，就会出现在 HUD，不要求同时带有 `skillwheel:skills`
 - 只进轮盘、不进 HUD 的物品，可以只加 `skillwheel:skills`
+- 只想在 HUD 显示、不进轮盘的物品，可以只加 `skillwheel:skills_ui`
 
 示例路径：
 
@@ -330,7 +331,7 @@ build/libs/
 ## 注意事项
 
 - 没有 `skillwheel:skills` 标签的物品，不会出现在轮盘里
-- HUD 物品必须同时命中 `skillwheel:skills` 和 `skillwheel:skills_ui`
+- HUD 只看 `skillwheel:skills_ui` 标签，与是否带有 `skillwheel:skills` 无关
 - 轮盘每页最多显示 `6` 个物品，超过后需右键翻页
 - 子菜单最多支持 `4` 个选项
 - Curios 来源需要安装 Curios 才会被扫描
